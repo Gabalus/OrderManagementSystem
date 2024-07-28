@@ -6,7 +6,6 @@ using Microsoft.Extensions.Hosting;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using OrderService.Domain.Interfaces;
 using OrderService.Infrastructure.Repositories;
 using InventoryService.Infrastructure.Repositories;
 using InventoryService.Domain.Interfaces;
@@ -14,6 +13,10 @@ using OrderService.Application.Queries;
 using System.Reflection;
 using OrderService.Application.Commands;
 using InventoryService.Infrastructure;
+using System;
+using OrderService.Application.Interfaces;
+using OrderService.Infrastructure.Clients;
+using OrderService.Domain.Repositories;
 
 public class Startup
 {
@@ -30,11 +33,18 @@ public class Startup
         services.AddDbContext<OrderDbContext>(options =>
     options.UseSqlServer(Configuration.GetConnectionString("OrderConnection")));
 
-        services.AddDbContext<InventoryDbContext>(options =>
-            options.UseSqlServer(Configuration.GetConnectionString("InventoryConnection")));
+        services.AddHttpClient<ICustomerServiceClient, CustomerServiceClient>(client =>
+        {
+            client.BaseAddress = new Uri(Configuration["Services:CustomerService"]);
+        });
+
+
+        services.AddHttpClient<IInventoryServiceClient, InventoryServiceClient>(client =>
+        {
+            client.BaseAddress = new Uri(Configuration["Services:InventoryService"]);
+        });
 
         services.AddScoped<IOrderRepository, OrderRepository>();
-        services.AddScoped<IProductRepository, ProductRepository>();
 
         services.AddMediatR(typeof(GetOrderByIdQuery).GetTypeInfo().Assembly);
         services.AddMediatR(typeof(SearchOrdersQuery).GetTypeInfo().Assembly);

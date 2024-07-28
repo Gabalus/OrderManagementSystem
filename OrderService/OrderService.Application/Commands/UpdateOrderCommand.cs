@@ -1,10 +1,10 @@
 ﻿using MediatR;
 using OrderService.Domain.Enums;
-using OrderService.Domain.Interfaces;
 using OrderService.Domain.Models;
 using System.Threading.Tasks;
 using System.Threading;
 using System;
+using OrderService.Domain.Repositories;
 
 namespace OrderService.Application.Commands
 {

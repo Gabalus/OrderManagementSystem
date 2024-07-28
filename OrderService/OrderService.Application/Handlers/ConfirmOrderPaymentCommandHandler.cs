@@ -1,34 +1,31 @@
 ﻿using MediatR;
 using OrderService.Application.Commands;
 using OrderService.Domain.Enums;
-using OrderService.Domain.Interfaces;
+using OrderService.Domain.Repositories;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OrderService.Application.Handlers
+public class ConfirmOrderPaymentCommandHandler : IRequestHandler<ConfirmOrderPaymentCommand, Unit>
 {
-    public class ConfirmOrderPaymentCommandHandler : IRequestHandler<ConfirmOrderPaymentCommand>
+    private readonly IOrderRepository _orderRepository;
+
+    public ConfirmOrderPaymentCommandHandler(IOrderRepository orderRepository)
     {
-        private readonly IOrderRepository _orderRepository;
+        _orderRepository = orderRepository;
+    }
 
-        public ConfirmOrderPaymentCommandHandler(IOrderRepository orderRepository)
+    public async Task<Unit> Handle(ConfirmOrderPaymentCommand request, CancellationToken cancellationToken)
+    {
+        var order = await _orderRepository.GetByIdAsync(request.OrderId);
+        if (order == null)
         {
-            _orderRepository = orderRepository;
+            throw new Exception("Order not found");
         }
 
-        public async Task<Unit> Handle(ConfirmOrderPaymentCommand request, CancellationToken cancellationToken)
-        {
-            var order = await _orderRepository.GetByIdAsync(request.OrderId);
-            if (order == null)
-            {
-                throw new Exception("Order not found");
-            }
+        order.Status = OrderStatus.Paid;
+        await _orderRepository.UpdateAsync(order);
 
-            order.Status = OrderStatus.Paid;
-            await _orderRepository.UpdateAsync(order);
-
-            return Unit.Value;
-        }
+        return Unit.Value;
     }
 }

@@ -1,6 +1,6 @@
-﻿using OrderService.Domain.Interfaces;
+﻿using Microsoft.EntityFrameworkCore;
 using OrderService.Domain.Models;
-using Microsoft.EntityFrameworkCore;
+using OrderService.Domain.Repositories;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,20 +19,21 @@ namespace OrderService.Infrastructure.Repositories
 
         public async Task<Order> GetByIdAsync(Guid id)
         {
-            return await _context.Orders.Include(o => o.Items).FirstOrDefaultAsync(o => o.Id == id);
+            return await _context.Orders
+                .Include(o => o.Items)
+                .FirstOrDefaultAsync(o => o.Id == id);
         }
 
-        public async Task<IEnumerable<Order>> SearchAsync(string query)
+        public async Task<IEnumerable<Order>> GetAllAsync()
         {
             return await _context.Orders
                 .Include(o => o.Items)
-                .Where(o => o.CustomerId.ToString().Contains(query) || o.Status.ToString().Contains(query))
                 .ToListAsync();
         }
 
-        public async Task CreateAsync(Order order)
+        public async Task AddAsync(Order order)
         {
-            _context.Orders.Add(order);
+            await _context.Orders.AddAsync(order);
             await _context.SaveChangesAsync();
         }
 
@@ -50,6 +51,23 @@ namespace OrderService.Infrastructure.Repositories
                 _context.Orders.Remove(order);
                 await _context.SaveChangesAsync();
             }
+        }
+
+        public async Task<IEnumerable<Order>> SearchAsync(string query)
+        {
+            return await Task.Run(() =>
+                _context.Orders
+                    .Include(o => o.Items)
+                    .AsEnumerable() // Switch to client-side evaluation
+                    .Where(o => o.CustomerId.ToString().Contains(query) || o.Status.ToString().Contains(query))
+                    .ToList()
+            );
+        }
+
+        public async Task CreateAsync(Order order)
+        {
+            await _context.Orders.AddAsync(order);
+            await _context.SaveChangesAsync();
         }
     }
 }

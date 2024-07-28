@@ -1,6 +1,6 @@
 ﻿using MediatR;
 using OrderService.Application.Commands;
-using OrderService.Domain.Interfaces;
+using OrderService.Domain.Repositories;
 using System;
 using System.Threading;
 using System.Threading.Tasks;

@@ -1,7 +1,7 @@
 ﻿using MediatR;
 using OrderService.Application.Queries;
-using OrderService.Domain.Interfaces;
 using OrderService.Domain.Models;
+using OrderService.Domain.Repositories;
 using System.Threading;
 using System.Threading.Tasks;
 

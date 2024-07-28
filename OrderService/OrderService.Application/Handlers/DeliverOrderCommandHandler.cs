@@ -1,49 +1,45 @@
-﻿using InventoryService.Domain.Interfaces;
-using MediatR;
+﻿using MediatR;
 using OrderService.Application.Commands;
+using OrderService.Application.Interfaces;
 using OrderService.Domain.Enums;
-using OrderService.Domain.Interfaces;
+using OrderService.Domain.Repositories;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OrderService.Application.Handlers
+public class DeliverOrderCommandHandler : IRequestHandler<DeliverOrderCommand, Unit>
 {
-    public class DeliverOrderCommandHandler : IRequestHandler<DeliverOrderCommand>
+    private readonly IOrderRepository _orderRepository;
+    private readonly IInventoryServiceClient _inventoryServiceClient;
+
+    public DeliverOrderCommandHandler(IOrderRepository orderRepository, IInventoryServiceClient inventoryServiceClient)
     {
-        private readonly IOrderRepository _orderRepository;
-        private readonly IProductRepository _productRepository;
+        _orderRepository = orderRepository;
+        _inventoryServiceClient = inventoryServiceClient;
+    }
 
-        public DeliverOrderCommandHandler(IOrderRepository orderRepository, IProductRepository productRepository)
+    public async Task<Unit> Handle(DeliverOrderCommand request, CancellationToken cancellationToken)
+    {
+        var order = await _orderRepository.GetByIdAsync(request.OrderId);
+        if (order == null)
         {
-            _orderRepository = orderRepository;
-            _productRepository = productRepository;
+            throw new Exception("Order not found");
         }
 
-        public async Task<Unit> Handle(DeliverOrderCommand request, CancellationToken cancellationToken)
+        foreach (var item in order.Items)
         {
-            var order = await _orderRepository.GetByIdAsync(request.OrderId);
-            if (order == null)
+            var product = await _inventoryServiceClient.GetProductByIdAsync(item.ProductId);
+            if (product == null || product.Stock < item.Quantity)
             {
-                throw new Exception("Order not found");
+                throw new Exception("Insufficient stock to deliver the order");
             }
 
-            foreach (var item in order.Items)
-            {
-                var product = await _productRepository.GetByIdAsync(item.ProductId);
-                if (product == null || product.Stock < item.Quantity)
-                {
-                    throw new Exception("Product not available in the requested quantity");
-                }
-
-                product.Stock -= item.Quantity;
-                await _productRepository.UpdateAsync(product);
-            }
-
-            order.Status = OrderStatus.Delivered;
-            await _orderRepository.UpdateAsync(order);
-
-            return Unit.Value;
+            // Update stock accordingly
         }
+
+        order.Status = OrderStatus.Delivered;
+        await _orderRepository.UpdateAsync(order);
+
+        return Unit.Value;
     }
 }
